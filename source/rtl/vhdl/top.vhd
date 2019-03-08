@@ -156,6 +156,9 @@ architecture rtl of top is
   signal dir_blue            : std_logic_vector(7 downto 0);
   signal dir_pixel_column    : std_logic_vector(10 downto 0);
   signal dir_pixel_row       : std_logic_vector(10 downto 0);
+  
+  
+  signal offset           : std_logic_vector(4 downto 0);
 
 begin
 
@@ -168,8 +171,8 @@ begin
   graphics_lenght <= conv_std_logic_vector(MEM_SIZE*8*8, GRAPH_MEM_ADDR_WIDTH);
   
   -- removed to inputs pin
-  direct_mode <= '1';
-  display_mode     <= "10";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+  direct_mode <= '0';
+  display_mode     <= "01";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
   
   font_size        <= x"1";
   show_frame       <= '1';
@@ -248,13 +251,65 @@ begin
   
   -- na osnovu signala iz vga_top modula dir_pixel_column i dir_pixel_row realizovati logiku koja genereise
   --dir_red
+  ------------------------------------------------------------
+  dir_red<="11111111" when dir_pixel_column<80 else
+			  "11111111" when dir_pixel_column<160 else
+			  "11111111" when dir_pixel_column<240 else
+			  "11111111" when dir_pixel_column<320 else
+			  "00000000" when dir_pixel_column<400 else
+			  "00000000" when dir_pixel_column<480 else
+			  "00000000" when dir_pixel_column<560 else
+			  "00000000";
+			  
   --dir_green
+  dir_green<="11111111" when dir_pixel_column<80 else
+			    "11111111" when dir_pixel_column<160 else
+			    "00000000" when dir_pixel_column<240 else
+			    "00000000" when dir_pixel_column<320 else
+			    "11111111" when dir_pixel_column<400 else
+			    "11111111" when dir_pixel_column<480 else
+			    "00000000" when dir_pixel_column<560 else
+			    "00000000";
+			  
   --dir_blue
+  dir_blue<="11111111" when dir_pixel_column<80 else
+			   "00000000" when dir_pixel_column<160 else
+			   "11111111" when dir_pixel_column<240 else
+			   "00000000" when dir_pixel_column<320 else
+			   "11111111" when dir_pixel_column<400 else
+			   "00000000" when dir_pixel_column<480 else
+			   "11111111" when dir_pixel_column<560 else
+			   "00000000";
+			  
  
   -- koristeci signale realizovati logiku koja pise po TXT_MEM
   --char_address
   --char_value
   --char_we
+  
+
+  offset<="10000";
+  
+  char_value <= "010100" when char_address = "00000000000000" + offset else --T
+					 "010010" when char_address = "00000000000001" + offset else --R
+					 "000011" when char_address = "00000000000010" + offset else --C
+					 "000101" when char_address = "00000000000011" + offset else --I
+					 "100000" when char_address = "00000000000100" + offset else --
+				--	 "10"&X"0" when char_address = "00000000000101" + offset else --
+				--	 "00"&X"9" when char_address = "00000000000110" + offset else --I
+				--	 "01"&X"0" when char_address = "00000000000111" + offset else --P
+				--	 "01"&X"3" when char_address = "00000000001000" + offset else --S
+				--	 "01"&X"5" when char_address = "00000000001001" + offset else --U
+				--	 "00"&X"D" when char_address = "00000000001010" + offset else --M
+					 "10"&X"0";
+
+	pixel_we <= '1';
+	
+  char_we<='1';
+  
+  
+  
+  
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   --pixel_address
