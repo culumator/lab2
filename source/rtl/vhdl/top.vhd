@@ -157,8 +157,16 @@ architecture rtl of top is
   signal dir_pixel_column    : std_logic_vector(10 downto 0);
   signal dir_pixel_row       : std_logic_vector(10 downto 0);
   
+  signal pixel_row           : std_logic_vector(GRAPH_MEM_ADDR_WIDTH-1 downto 0);
+  signal pixel_col           : std_logic_vector(GRAPH_MEM_ADDR_WIDTH-1 downto 0);
   
-  signal offset           : std_logic_vector(4 downto 0);
+  signal sec_cnt             : std_logic_vector(24 downto 0);
+  signal sec_cnt_next        : std_logic_vector(24 downto 0);
+  signal move_cnt            : std_logic_vector(5 downto 0);
+  signal move_cnt_next       : std_logic_vector(5 downto 0);
+  
+  signal offset              : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
+  signal offset_next         : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
 
 begin
 
@@ -172,7 +180,7 @@ begin
   
   -- removed to inputs pin
   direct_mode <= '0';
-  display_mode     <= "01";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+  display_mode     <= "11";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
   
   font_size        <= x"1";
   show_frame       <= '1';
@@ -251,70 +259,102 @@ begin
   
   -- na osnovu signala iz vga_top modula dir_pixel_column i dir_pixel_row realizovati logiku koja genereise
   --dir_red
-  ------------------------------------------------------------
-  dir_red<="11111111" when dir_pixel_column<80 else
-			  "11111111" when dir_pixel_column<160 else
-			  "11111111" when dir_pixel_column<240 else
-			  "11111111" when dir_pixel_column<320 else
-			  "00000000" when dir_pixel_column<400 else
-			  "00000000" when dir_pixel_column<480 else
-			  "00000000" when dir_pixel_column<560 else
-			  "00000000";
-			  
   --dir_green
-  dir_green<="11111111" when dir_pixel_column<80 else
-			    "11111111" when dir_pixel_column<160 else
-			    "00000000" when dir_pixel_column<240 else
-			    "00000000" when dir_pixel_column<320 else
-			    "11111111" when dir_pixel_column<400 else
-			    "11111111" when dir_pixel_column<480 else
-			    "00000000" when dir_pixel_column<560 else
-			    "00000000";
-			  
   --dir_blue
-  dir_blue<="11111111" when dir_pixel_column<80 else
-			   "00000000" when dir_pixel_column<160 else
-			   "11111111" when dir_pixel_column<240 else
-			   "00000000" when dir_pixel_column<320 else
-			   "11111111" when dir_pixel_column<400 else
-			   "00000000" when dir_pixel_column<480 else
-			   "11111111" when dir_pixel_column<560 else
-			   "00000000";
-			  
- 
+  dir_red<=x"ff" when dir_pixel_column<80 else
+						x"ff" when (dir_pixel_column>=80 and dir_pixel_column<160) else
+						x"00" when (dir_pixel_column>=160 and dir_pixel_column<240) else
+						x"00" when (dir_pixel_column>=240 and dir_pixel_column<320) else
+						x"ff" when (dir_pixel_column>=320 and dir_pixel_column<400) else
+						x"ff" when (dir_pixel_column>=400 and dir_pixel_column<480) else
+						x"00" when (dir_pixel_column>=480 and dir_pixel_column<560) else
+						x"00" ;
+	dir_green<=x"ff" when dir_pixel_column<80 else
+						x"ff" when (dir_pixel_column>=80 and dir_pixel_column<160) else
+						x"ff" when (dir_pixel_column>=160 and dir_pixel_column<240) else
+						x"ff" when (dir_pixel_column>=240 and dir_pixel_column<320) else
+						x"00" when (dir_pixel_column>=320 and dir_pixel_column<400) else
+						x"00" when (dir_pixel_column>=400 and dir_pixel_column<480) else
+						x"00" when (dir_pixel_column>=480 and dir_pixel_column<560) else
+						x"00" ;
+	dir_blue<=x"ff" when dir_pixel_column<80 else
+						x"00" when (dir_pixel_column>=80 and dir_pixel_column<160) else
+						x"ff" when (dir_pixel_column>=160 and dir_pixel_column<240) else
+						x"00" when (dir_pixel_column>=240 and dir_pixel_column<320) else
+						x"ff" when (dir_pixel_column>=320 and dir_pixel_column<400) else
+						x"00" when (dir_pixel_column>=400 and dir_pixel_column<480) else
+						x"ff" when (dir_pixel_column>=480 and dir_pixel_column<560) else
+						x"00" ;
   -- koristeci signale realizovati logiku koja pise po TXT_MEM
   --char_address
   --char_value
   --char_we
-  
+		
+		char_we<='1';
+	--	offset<="00000000010000";
+		
+		
+		process (pix_clock_s, sec_cnt) begin
+	 if (rising_edge(pix_clock_s)) then
+		if (char_address = "1001011000000") then
+		  char_address <= (others => '0');
+		else
+			char_address <= char_address + 1;
+		end if;
+	 end if;
+	end process;
 
-  offset<="10000";
-  
-  char_value <= "010100" when char_address = "00000000000000" + offset else --T
-					 "010010" when char_address = "00000000000001" + offset else --R
-					 "000011" when char_address = "00000000000010" + offset else --C
-					 "000101" when char_address = "00000000000011" + offset else --I
-					 "100000" when char_address = "00000000000100" + offset else --
-				--	 "10"&X"0" when char_address = "00000000000101" + offset else --
-				--	 "00"&X"9" when char_address = "00000000000110" + offset else --I
-				--	 "01"&X"0" when char_address = "00000000000111" + offset else --P
-				--	 "01"&X"3" when char_address = "00000000001000" + offset else --S
-				--	 "01"&X"5" when char_address = "00000000001001" + offset else --U
-				--	 "00"&X"D" when char_address = "00000000001010" + offset else --M
+	char_value <="010100" when char_address = "00000011001000" + offset else --T
+					 "010010" when char_address = "00000011001001" + offset else --R
+					 "000011" when char_address = "00000011001010" + offset else --C
+					 "001001" when char_address = "00000011001011" + offset else --I
+					 "100000" when char_address = "00000011001100" + offset else --
+					 "011010" when char_address = "00000011001101" + offset else --Z
+					 "001101" when char_address = "00000011001110" + offset else --M
+					 "001001" when char_address = "00000011001111" + offset else --I
+					 "001010" when char_address = "00000011010000" + offset else --J
+					 "000001" when char_address = "00000011010001" + offset else --A
 					 "10"&X"0";
-
-	pixel_we <= '1';
-	
-  char_we<='1';
-  
-  
-  
-  
+		
+		
+		
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   --pixel_address
   --pixel_value
   --pixel_we
+  
+  pixel_we <= '1';
+
+	process (pix_clock_s) begin
+		if (rising_edge(pix_clock_s)) then
+			sec_cnt <= sec_cnt_next;
+			move_cnt <= move_cnt_next;
+			offset <= offset_next;
+
+			if (pixel_col = 20) then
+				pixel_col <= (others => '0');
+				pixel_row <= pixel_row + 20;
+			elsif (pixel_row = 9600) then
+				pixel_col <= (others => '0');
+				pixel_row <= (others => '0');
+			else
+				pixel_col <= pixel_col + 1;
+				pixel_row <= pixel_row;
+			end if;
+		end if;
+	end process;
+
+	sec_cnt_next <= sec_cnt + 1 when sec_cnt < 10000000 else (others => '0');
+	move_cnt_next <=	move_cnt when sec_cnt < 10000000 else 
+							move_cnt + 1 when move_cnt < 19 else (others => '0');
+	offset_next <= offset when sec_cnt < 10000000 else
+						offset + 1 when offset < 30 else (others => '0');
+
+	pixel_address <= pixel_row + pixel_col;
+	pixel_value <= X"FFFFFFFF" when pixel_col = move_cnt and pixel_row > 400 and pixel_row < 1040 else
+						X"00000000";
+ 
   
   
 end rtl;
