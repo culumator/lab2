@@ -32,7 +32,13 @@ entity top is
     sync_o         : out std_logic;
     red_o          : out std_logic_vector(7 downto 0);
     green_o        : out std_logic_vector(7 downto 0);
-    blue_o         : out std_logic_vector(7 downto 0)
+    blue_o         : out std_logic_vector(7 downto 0);
+	 direct_mode_i     : in std_logic;
+    display_mode_i : in std_logic_vector(1 downto 0)
+    
+	 
+	 
+	 
    );
 end top;
 
@@ -222,14 +228,14 @@ begin
     clk_i              => clk_i,
     reset_n_i          => reset_n_i,
     --
-    direct_mode_i      => direct_mode,
+    direct_mode_i      => direct_mode_i,
     dir_red_i          => dir_red,
     dir_green_i        => dir_green,
     dir_blue_i         => dir_blue,
     dir_pixel_column_o => dir_pixel_column,
     dir_pixel_row_o    => dir_pixel_row,
     -- cfg
-    display_mode_i     => display_mode,  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+    display_mode_i     => display_mode_i,  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
     -- text mode interface
     text_addr_i        => char_address,
     text_data_i        => char_value,
@@ -334,22 +340,23 @@ begin
 
 			if (pixel_col = 20) then
 				pixel_col <= (others => '0');
-				pixel_row <= pixel_row + 20;
+				pixel_row <= pixel_row + 20;			
 			elsif (pixel_row = 9600) then
 				pixel_col <= (others => '0');
 				pixel_row <= (others => '0');
 			else
 				pixel_col <= pixel_col + 1;
 				pixel_row <= pixel_row;
+			
 			end if;
 		end if;
 	end process;
 
 	sec_cnt_next <= sec_cnt + 1 when sec_cnt < 10000000 else (others => '0');
 	move_cnt_next <=	move_cnt when sec_cnt < 10000000 else 
-							move_cnt + 1 when move_cnt < 19 else (others => '0');
+							move_cnt +1 when move_cnt <19 else (others => '0');
 	offset_next <= offset when sec_cnt < 10000000 else
-						offset + 1 when offset < 30 else (others => '0');
+						offset +1 when offset < 20 else (others => '0');
 
 	pixel_address <= pixel_row + pixel_col;
 	pixel_value <= X"FFFFFFFF" when pixel_col = move_cnt and pixel_row > 400 and pixel_row < 1040 else
